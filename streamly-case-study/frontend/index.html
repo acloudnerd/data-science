@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Streamly Recommendations Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    /* Reset and base styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    /* Card container */
+    .card {
+      background: #111827;
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+      max-width: 900px;
+      width: 100%;
+      transition: transform 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+
+    p {
+      margin-bottom: 1.5rem;
+      text-align: center;
+      color: #cbd5e1;
+    }
+
+    /* Profile selector & button */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    select, button {
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      border: none;
+      font-size: 1rem;
+      outline: none;
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+
+    select {
+      min-width: 200px;
+    }
+
+    button {
+      background: #2563eb;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1e40af;
+      transform: scale(1.05);
+    }
+
+    /* Recommendations table */
+    #resultsSection {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      padding: 0.75rem;
+      border-bottom: 1px solid #374151;
+      text-align: left;
+    }
+
+    th {
+      color: #9ca3af;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    tr:hover {
+      background-color: #1f2937;
+    }
+
+    /* Pills for age rating */
+    .pill {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      background: #1f2937;
+      color: #9ca3af;
+      margin-right: 0.25rem;
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 1.5rem; }
+      table, th, td { font-size: 0.85rem; }
+      select, button { font-size: 0.9rem; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card">
+    <h1>Streamly Recommendation Engine</h1>
+    <p>Select a profile to see personalized recommended titles.</p>
+
+    <div class="controls">
+      <label for="profileSelect">Profile:</label>
+      <select id="profileSelect"></select>
+      <button id="loadBtn">Get Recommendations</button>
+    </div>
+
+    <div id="resultsSection" style="display:none;">
+      <h2>Recommendations</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Age Rating</th>
+            <th>Language</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // Load profiles into the dropdown
+    async function loadProfiles() {
+      const res = await fetch("/api/profiles");
+      const profiles = await res.json();
+      const select = document.getElementById("profileSelect");
+      select.innerHTML = "";
+
+      profiles.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.profile_id;
+        opt.textContent = `${p.profile_name} (ID: ${p.profile_id}, ${p.age_band}, ${p.kids_profile ? "Kids" : "Adult"})`;
+        select.appendChild(opt);
+      });
+    }
+
+    // Fetch recommendations and display them
+    async function loadRecommendations() {
+      const select = document.getElementById("profileSelect");
+      const profileId = select.value;
+      const res = await fetch(`/api/recommendations?profile_id=${profileId}`);
+      const recs = await res.json();
+
+      const tbody = document.getElementById("resultsBody");
+      tbody.innerHTML = "";
+
+      recs.forEach(r => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.title_name}</td>
+          <td>${r.category}</td>
+          <td><span class="pill">${r.age_rating}</span></td>
+          <td>${r.language}</td>
+          <td>${r.score.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("resultsSection").style.display = "block";
+    }
+
+    document.getElementById("loadBtn").addEventListener("click", loadRecommendations);
+    loadProfiles();
+  </script>
+
+</body>
+</html>
